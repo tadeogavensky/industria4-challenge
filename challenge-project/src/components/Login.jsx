@@ -4,7 +4,7 @@ import jwt_decode from "jwt-decode";
 
 export const Login = ({ setUser, isUserLogged }) => {
   const showUserInformation = (response) => {
-    console.log('response :>> ', jwt_decode(response.credential));
+    console.log("response :>> ", jwt_decode(response.credential));
     setUser(jwt_decode(response.credential));
     isUserLogged(true);
   };
@@ -18,7 +18,6 @@ export const Login = ({ setUser, isUserLogged }) => {
         }}
         shape="pill"
         size="large"
-        width="1000"
         logo_alignment="left"
         text="signin_with"
         type="standard"
