@@ -4,33 +4,30 @@ const Bluetooth = () => {
   const [device, setDevice] = useState(null);
   const [connected, setConnected] = useState(false);
   const [dataReceived, setDataReceived] = useState(null);
-
+  const [services, setServices] = useState();
   const connectToDevice = async () => {
     try {
       console.log("Requesting Bluetooth device...");
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
+        optionalServices: ['0000180f-0000-1000-8000-00805f9b34fb'],
       });
       console.log("Bluetooth device selected:", device);
-
 
       const server = await device.gatt.connect();
       console.log("Bluetooth device connected!");
 
-      const service = await server.getPrimaryService("service_uuid");
-      const characteristic = await service.getCharacteristic("characteristic_uuid");
-  
-      // Read data from the characteristic
-      const value = await characteristic.readValue();
-      console.log("Received data:", new TextDecoder().decode(value));
-  
-      // Write data to the characteristic
-      const data = new Uint8Array([0x01, 0x02, 0x03]);
-      await characteristic.writeValue(data);
-      console.log("Data sent:", data);
+      const discoveredServices = await server.getPrimaryServices();
+
+      console.log('discoveredServices :>> ', discoveredServices);
+
+      const serviceUUIDs = discoveredServices.map(service => service.uuid);
+      
+      console.log("Discovered services:", serviceUUIDs);
 
       setConnected(true);
       setDevice(device);
+      setServices(serviceUUIDs);
     } catch (error) {
       console.error("Failed to connect to Bluetooth device:", error);
       setConnected(false);
@@ -38,29 +35,45 @@ const Bluetooth = () => {
   };
 
   const handleReceiveData = (event) => {
-    const value = event.target.value;
-    console.log("Received data:", value);
-
-    // Process the received data as needed
-    setDataReceived(value);
+    try {
+      const { value } = event.target;
+      if (value) {
+        console.log("Received data:", value);
+        // Process the received data as needed
+        setDataReceived(value);
+      } else {
+        console.log("Received empty data");
+      }
+    } catch (error) {
+      console.error("Error receiving data:", error);
+    }
   };
+  
 
   const sendData = async () => {
     const data = "Hello, Bluetooth device!";
+    console.log('data :>> ', data);
+    console.log('services :>> ', services);
     if (device && connected) {
+      console.log('entra aca :>> ');
       try {
-        const service = await device.gatt.getPrimaryService("service_uuid");
-        const characteristic = await service.getCharacteristic(
-          "characteristic_uuid"
-        );
-
-        await characteristic.writeValue(new TextEncoder().encode(data));
-        console.log("Data sent:", data);
+        const services = await device.gatt.getPrimaryServices();
+  
+        services.forEach(async (service) => {
+          const characteristics = await service.getCharacteristics();
+          characteristics.forEach(async (characteristic) => {
+            console.log("Characteristic", characteristic.uuid);
+  
+            await characteristic.writeValue(new TextEncoder().encode(data));
+            console.log("Data sent:", data);
+          });
+        });
       } catch (error) {
         console.error("Error sending data:", error);
       }
     }
   };
+  
 
   return (
     <div className="flex flex-col mt-20 gap-3 w-[500px] shadow-md bg-white p-5 text-center">
