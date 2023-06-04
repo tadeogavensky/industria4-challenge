@@ -4,13 +4,15 @@ const Bluetooth = () => {
   const [device, setDevice] = useState(null);
   const [connected, setConnected] = useState(false);
   const [dataReceived, setDataReceived] = useState(null);
+  const [data, setData] = useState(null);
   const [services, setServices] = useState();
+
   const connectToDevice = async () => {
     try {
       console.log("Requesting Bluetooth device...");
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
-        optionalServices: ['0000180f-0000-1000-8000-00805f9b34fb'],
+        optionalServices: ["0000180f-0000-1000-8000-00805f9b34fb"],
       });
       console.log("Bluetooth device selected:", device);
 
@@ -19,11 +21,7 @@ const Bluetooth = () => {
 
       const discoveredServices = await server.getPrimaryServices();
 
-      console.log('discoveredServices :>> ', discoveredServices);
-
-      const serviceUUIDs = discoveredServices.map(service => service.uuid);
-      
-      console.log("Discovered services:", serviceUUIDs);
+      const serviceUUIDs = discoveredServices.map((service) => service.uuid);
 
       setConnected(true);
       setDevice(device);
@@ -48,26 +46,37 @@ const Bluetooth = () => {
       console.error("Error receiving data:", error);
     }
   };
-  
 
-  const sendData = async () => {
-    const data = "Hello, Bluetooth device!";
-    console.log('data :>> ', data);
-    console.log('services :>> ', services);
+  const sendData = async (e) => {
+    e.preventDefault();
+  
     if (device && connected) {
-      console.log('entra aca :>> ');
       try {
-        const services = await device.gatt.getPrimaryServices();
+        console.log("services :>> ", services);
   
-        services.forEach(async (service) => {
-          const characteristics = await service.getCharacteristics();
-          characteristics.forEach(async (characteristic) => {
-            console.log("Characteristic", characteristic.uuid);
+        // Connect to the Bluetooth device and retrieve the GATT server
+        const server = await device.gatt.connect();
   
-            await characteristic.writeValue(new TextEncoder().encode(data));
-            console.log("Data sent:", data);
-          });
-        });
+        // Get the specified service
+        const service = await server.getPrimaryService(services);
+  
+        // Get the characteristic with the specified UUID
+        const characteristics = await service.getCharacteristics();
+  
+        console.log("characterisatics :>> ", characteristics[0].uuid);
+  
+        const characteristic = await service.getCharacteristic(
+          characteristics[0].uuid
+        );
+  
+        console.log("characteristic:", characteristic);
+  
+        const data = new Uint8Array([0x01, 0x20, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00]);
+        const dataBuffer = data.buffer;
+  
+        await characteristic.writeValue(dataBuffer);
+  
+        console.log("Data sent:", data);
       } catch (error) {
         console.error("Error sending data:", error);
       }
@@ -87,16 +96,36 @@ const Bluetooth = () => {
       {connected && <p>Bluetooth device connected: {device.name}</p>}
 
       {connected && (
-        <button
-          onClick={sendData}
-          disabled={!connected}
-          className="bg-[#a3b18a] hover:bg-[#588157] transition-all ease-in-out duration-300 text-white px-3 py-2 rounded-md "
-        >
-          Send Data
-        </button>
+        <form className="flex flex-col gap-2" onSubmit={sendData}>
+          <input
+            type="file"
+            placeholder="select a file"
+            onChange={(e) => {
+              setData(e.target.value);
+            }}
+          />
+          <input
+            type="text"
+            placeholder="input text"
+            className=" border-blue-300 border-2 p-2"
+            onChange={(e) => {
+              setData(e.target.value);
+            }}
+          />
+          <button
+            onClick={sendData}
+            disabled={!connected}
+            className="bg-[#a3b18a] hover:bg-[#588157] transition-all ease-in-out duration-300 text-white px-3 py-2 rounded-md "
+          >
+            Send Data
+          </button>
+        </form>
       )}
 
-      {dataReceived && <p>Data received: {dataReceived}</p>}
+      <div className="flex flex-col">
+        <p>Recieved data will be displayed here</p>
+        {dataReceived && <p>Data received: {dataReceived}</p>}
+      </div>
     </div>
   );
 };

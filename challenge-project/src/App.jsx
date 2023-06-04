@@ -3,6 +3,7 @@ import { Login } from "./components/Login";
 import { Navbar } from "./components/Nabvar";
 import Bluetooth from "./components/Bluetooth";
 
+
 const App = () => {
   const [user, setUser] = useState();
   const [userLogged, isUserLogged] = useState(false);
@@ -17,10 +18,10 @@ const App = () => {
 
       <div>{userLogged == true ? <Navbar credential={user} /> : null}</div>
 
+      <div className="flex justify-center">
+        {userLogged == true ? <Bluetooth /> : null}
+      </div>
 
-      <div className="flex justify-center" >{userLogged == true ?  <Bluetooth /> : null}</div>
-
-    
     </div>
   );
 };
